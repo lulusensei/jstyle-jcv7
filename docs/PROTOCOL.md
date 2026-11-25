@@ -19,7 +19,7 @@ white-labels include "CORE VITALS" and "LivLive").
 
 | Service | Characteristic | Purpose |
 |---|---|---|
-| `0x180D` Heart Rate | `0x2A37` (notify), `0x2A38` (read) | standard HR |
+| `0x180D` Heart Rate | `0x2A37` (notify), `0x2A38` (read) | standard HR — **streams live ~1 Hz when worn** (verified: 21 samples/30 s, values 59–70 bpm, sensor location `0x02` = wrist); no proprietary handshake required |
 | `0x1822` Pulse Oximeter | `0x2A5F` (notify) | standard SpO2 spot-check |
 | `0x180A` Device Information | `0x2A29`, `0x2A24`, `0x2A25`, `0x2A27`, `0x2A26` | `J-STYLE`, `JCV7`, serial `88888801`, hw `V_1.0`, fw `V_30303033-260331` |
 | `0x180F` Battery | `0x2A19` (read/notify) | standard battery level |
@@ -148,9 +148,11 @@ A second protocol runs on the same characteristics for firmware files
 1. **0x43 GET_DAY_DATA / 0x44 GET_SLEEP_DATA / 0x17 GET_HEART_BREATH_DATA**
    remain silent — payload semantics (day index? date? cursor?) and their
    response formats live in the Dart side of the app (`libapp.so`).
-2. **Live heart rate**: standard `0x2A37` did not stream during tests; the
-   `0x11` enable command produced no ack. The app polls history records
-   instead — needs Dart analysis or a longer capture on a worn band.
+2. **Live heart rate — solved for the standard service**: `0x2A37` streams
+   continuously at ~1 Hz as soon as the band is worn (skin contact), no
+   command needed — verified 2026-11-25. What remains open: triggering an
+   SpO2 (PLX) measurement (`0x2A5F` stayed silent while worn), and whether
+   `0x11 ENABLE_ACTIVITY_HEART` affects workout-mode streaming.
 3. **0xF4 status byte** — success flag? Checksum scheme for a different frame
    class? Appears in acks and time payloads.
 4. **`0x77` flash metadata** — needs experiments to map to a flash-read
