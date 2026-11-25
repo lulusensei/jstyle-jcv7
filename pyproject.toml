@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jstyle-jcv7"
+version = "0.1.0"
+description = "Open-source driver for the JStyle JCV7 health band (sold as the abandoned 'Pulse' DePIN wearable)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["ble", "bluetooth", "jstyle", "jcv7", "pulse", "wearable", "reverse-engineering"]
+dependencies = ["bleak>=0.21"]
+
+[project.optional-dependencies]
+dev = ["androguard>=4.1"]
+
+[project.scripts]
+jcv7 = "jstyle_jcv7.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["jstyle_jcv7*"]

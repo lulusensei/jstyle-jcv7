@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# reverse-engineering evidence and large binaries — do not redistribute
+pkgs/
+scripts/*.txt
+scripts/*.log
+decompiled/
