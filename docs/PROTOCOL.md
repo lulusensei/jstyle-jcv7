@@ -124,6 +124,37 @@ suggests a server-side cursor or a fixed "last night" window. If `[1]` were a
 packet sequence we would expect 1..N — packets 1–4 have never been observed,
 supporting the hour interpretation (05:00–08:00).
 
+## History dump commands (0x51-0x5C)
+
+Writing a bare 16-byte frame `[cmd, 0x00…]` for these commands makes the band
+stream its stored history as bursts of large (MTU-sized) notifications. Each
+record follows the envelope:
+
+```
+[0]      cmd echo
+[1:3]    record sequence (u16 LE)
+[3]      0x00
+[4:11]   BCD date-time  yy MM dd HH mm ss
+[11:]    type-specific payload
+```
+
+| Cmd | Content (provisional) | Notes |
+|---|---|---|
+| `0x51` | unknown dump | 4 bursts observed |
+| `0x52` | **hourly activity** (steps/calories per hour) | small-int counters |
+| `0x53` | **sleep sessions** | start time + duration + stage code per interval (`01/02/03/05`) |
+| `0x54` | **workout HR series** | HR byte sequence after timestamp |
+| `0x55`-`0x57` | short acks / small dumps | |
+| `0x58` | **minute-by-minute sensor log** | HR byte verified against live readings (59→64→70) |
+| `0x59` | **event log** | state events, `88 88 11 11` markers |
+| `0x5B`, `0x60`, `0x62` | short acks `[cmd, FF]` | **one of these vibrates the band once** (likely "find device") |
+| `0x5C` | **detailed measurements** | float32 fields: temperatures 15-28 °C, SpO2-candidate bytes |
+
+Factory QC records (Feb-Mar 2026) are still in flash, so history survives
+resets and re-pairing. Resynchronize record boundaries on the pattern
+`cmd, ?, 0x00, 0x26` with BCD validation — see
+`scripts/parse_sweep_capture.py`.
+
 ## Firmware / file transfer channel (0x92 family)
 
 A second protocol runs on the same characteristics for firmware files
@@ -146,13 +177,14 @@ A second protocol runs on the same characteristics for firmware files
 ## Open questions
 
 1. **0x43 GET_DAY_DATA / 0x44 GET_SLEEP_DATA / 0x17 GET_HEART_BREATH_DATA**
-   remain silent — payload semantics (day index? date? cursor?) and their
-   response formats live in the Dart side of the app (`libapp.so`).
-2. **Live heart rate — solved for the standard service**: `0x2A37` streams
-   continuously at ~1 Hz as soon as the band is worn (skin contact), no
-   command needed — verified 2026-11-25. What remains open: triggering an
-   SpO2 (PLX) measurement (`0x2A5F` stayed silent while worn), and whether
-   `0x11 ENABLE_ACTIVITY_HEART` affects workout-mode streaming.
+   remain silent — the history data instead lives in the dump commands
+   0x51-0x59 / 0x5C (see above); their exact payload semantics (sleep-stage
+   interval length, counter units, float fields) still need pinning down.
+2. **SpO2 trigger**: a blind sweep of command ids 0x18-0x63 while worn never
+   produced PLX (`0x2A5F`) traffic. The service has no Features/Spot-Check
+   characteristics, so SpO2 is continuous-only; the trigger is either a
+   command outside the swept range or automatic (sleep mode — the app's
+   `spo2hDataAuto` strings suggest background measurement).
 3. **0xF4 status byte** — success flag? Checksum scheme for a different frame
    class? Appears in acks and time payloads.
 4. **`0x77` flash metadata** — needs experiments to map to a flash-read
@@ -160,7 +192,8 @@ A second protocol runs on the same characteristics for firmware files
    entering DFU mode).
 5. **User-info goal field** — writing 4 params shifted the stored goal
    (0x3D → 0x4C). The official app probably sends 5+ params.
-6. **ANCS pairing password** (`0x3C`) — purpose and when it is required.
+6. **Vibrate/alert commands** — one of `0x5B` / `0x60` / `0x62` fires a
+   single vibration (harmless one-shot, no persistent alarm observed).
 
 Artifacts for further work (not redistributed in this repo — see
 CONTRIBUTING.md): `libapp.so` (Dart AOT snapshot, 28 MB) and the extracted

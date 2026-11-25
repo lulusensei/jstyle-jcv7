@@ -11,3 +11,4 @@ pkgs/
 scripts/*.txt
 scripts/*.log
 decompiled/
+captures/
