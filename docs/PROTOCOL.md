@@ -140,15 +140,21 @@ record follows the envelope:
 
 | Cmd | Content (provisional) | Notes |
 |---|---|---|
-| `0x51` | unknown dump | 4 bursts observed |
-| `0x52` | **hourly activity** (steps/calories per hour) | small-int counters |
-| `0x53` | **sleep sessions** | start time + duration + stage code per interval (`01/02/03/05`) |
+| `0x51` | **daily summaries** | 1 record per day, u16 LE counters (steps/kcal/dist — units TBD) |
+| `0x52` | **hourly activity** (steps/calories per hour) | 25-byte records |
+| `0x53` | **sleep sessions** | 2-hour blocks, 130-byte records: `[cmd][seq:2][yy MM dd HH mm][minutes-covered][120 × stage/min]` — codes `0`=awake, `1`=deep?, `2`=light?, `3`=REM?, `5`=in-bed awake |
 | `0x54` | **workout HR series** | HR byte sequence after timestamp |
-| `0x55`-`0x57` | short acks / small dumps | |
-| `0x58` | **minute-by-minute sensor log** | HR byte verified against live readings (59→64→70) |
+| `0x55` | **5-minute HR log** | 10-byte records `[cmd][seq:2][yy MM dd HH mm][type][hr]` |
+| `0x56` | periodic snapshot (6-byte payload) | every ~10-15 min; meaning TBD |
+| `0x58` | **minute-by-minute sensor log** | 33-byte records, payload[18] ≈ HR (verified vs 5-min log) |
 | `0x59` | **event log** | state events, `88 88 11 11` markers |
 | `0x5B`, `0x60`, `0x62` | short acks `[cmd, FF]` | **one of these vibrates the band once** (likely "find device") |
-| `0x5C` | **detailed measurements** | float32 fields: temperatures 15-28 °C, SpO2-candidate bytes |
+| `0x5C` | **manual measurement snapshots** | timestamp + HR + float32 temperature (°C) + second float |
+
+Verified overnight (2026-11-25→26): sleep stages from `0x53` (6 × 2 h
+blocks), 5-min HR from `0x55` (92 pts, 54-76 bpm), minute HR from `0x58`
+(350 records). No SpO2 values were stored overnight — auto-measurement is
+either disabled by default or requires a settings command.
 
 Factory QC records (Feb-Mar 2026) are still in flash, so history survives
 resets and re-pairing. Resynchronize record boundaries on the pattern
