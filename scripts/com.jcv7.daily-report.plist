@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.jcv7.daily-report</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>-m</string>
+        <string>jstyle_jcv7.cli</string>
+        <string>--address</string>
+        <string>93633342-1CE2-A410-529D-C41D12F6F6FF</string>
+        <string>report</string>
+        <string>--mail</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/lulusensei/Documents/0x Alpha/pulse-re</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/jcv7-report.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/jcv7-report.log</string>
+</dict>
+</plist>

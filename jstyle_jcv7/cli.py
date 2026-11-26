@@ -86,6 +86,27 @@ async def cmd_monitor(args) -> None:
                 print(protocol.is_valid(f) * "OK " + f.hex(" "))
 
 
+async def cmd_report(args) -> None:
+    import asyncio as _aio
+    from .report import gather, render_report, decode_sleep, decode_hr5, decode_minute
+
+    battery, version, mac, user, streams = await gather(args.address)
+    sessions = decode_sleep(streams.get(0x53, b""))
+    hr5 = decode_hr5(streams.get(0x55, b""))
+    minute_hr = decode_minute(streams.get(0x58, b""))
+    body = render_report(battery, version, mac, user, sessions, hr5, minute_hr)
+    if args.mail:
+        from .mailer import send_report
+        import datetime as _dt
+        send_report(f"JCV7 report {_dt.date.today()}", body)
+        print("report emailed")
+    if args.out:
+        with open(args.out, "w") as f:
+            f.write(body)
+        print(f"report written to {args.out}")
+    print(body)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(prog="jcv7", description="JStyle JCV7 / Pulse band CLI")
     p.add_argument("--address", "-a", help="band MAC/UUID (omit with scan)")
@@ -118,6 +139,11 @@ def main() -> None:
     s.add_argument("hex")
     s.add_argument("--wait", type=float, default=2.0)
     s.set_defaults(fn=cmd_raw)
+
+    s = sub.add_parser("report", help="harvest + decode the night, print/mail it")
+    s.add_argument("--mail", action="store_true", help="send by email (needs mail config)")
+    s.add_argument("--out", help="also write the report to a file")
+    s.set_defaults(fn=cmd_report)
 
     s = sub.add_parser("monitor", help="log all notifications")
     s.set_defaults(fn=cmd_monitor)
