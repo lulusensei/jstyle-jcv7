@@ -50,7 +50,15 @@ class Transport:
         self._notify_task: asyncio.Task | None = None
 
     async def connect(self) -> None:
-        self.client = BleakClient(self.address, timeout=20)
+        # Bands advertise in short windows: scan until seen, then connect
+        # immediately via the discovered object (connecting by address alone
+        # races the advertising window and usually fails).
+        device = await BleakScanner.find_device_by_address(self.address, timeout=30)
+        if device is None:
+            raise ConnectionError(
+                f"band {self.address} not advertising — wake it (charger/shake) and retry"
+            )
+        self.client = BleakClient(device, timeout=20)
         await self.client.connect()
         await self.client.start_notify(CHAR_NOTIFY, self._on_notify)
 
